@@ -1,6 +1,7 @@
 body {
-    background-color: #e1f4f3;
+    font-family: 'Open Sans', sans-serif;
     text-align: center;
+    background-color: whitesmoke;
 }
 
 .navbar {
@@ -13,4 +14,31 @@ a {
 
 a:hover {
     color: #f0f0f0;
-  }
+}
+
+.card {
+    background-color: transparent;
+}
+
+.card-body {
+    background-color: lightgoldenrodyellow;
+}
+
+.navbar {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    background-color: lightseagreen;
+    /*opacity: 50%;*/
+}
+
+.navbar-brand {
+    color: black;
+}
+
+h5 {
+    font-weight: 700;
+}
+
+h3 {
+    font-weight: 500;
+}
