@@ -129,6 +129,11 @@
             <div class="col-sm maplayer">
                 <div>
                     <div>
+                        <style>
+                            .maplayer {
+                                display: {{show}};
+                            }
+                        </style>
                         <div id='chart' class='chart'></div>
                         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
                         <script type='text/javascript'>
@@ -141,6 +146,7 @@
         </div>
         <br>
         <br>
+        <h4>{{ details }}</h4>
         <h3>{{ prediction_text }}</h3>
         <br><br><br>
     </div>
