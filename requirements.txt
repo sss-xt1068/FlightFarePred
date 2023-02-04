@@ -6,5 +6,6 @@ scikit-learn==1.1.1
 flask_cors==3.0.10
 flask_wtf
 wtforms
+jinja2==2.11.3
 plotly==5.9.0
 lightgbm==3.2.1
