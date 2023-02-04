@@ -6,3 +6,4 @@ sklearn
 flask_cors
 flask_wtf
 wtforms
+plotly

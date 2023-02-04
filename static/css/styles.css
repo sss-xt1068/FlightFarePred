@@ -5,34 +5,56 @@ body {
 }
 
 .navbar {
-    background-color: #333333;
+    /* background-color: #333333; */
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    background-color: #fed9b7;
+    text-align: center;
+    align-content: center;
+    align-items: center;
+}
+
+.maplayer {
+    display: none;
+}
+.navbar-header {
+    /* background-color: #333333; */
+    align-items: center;
+    text-align: center ;
+
+}
+
+.navbar .navbar-nav {
+    display: inline-block;
+    float: none;
+    vertical-align: top;
+}
+
+.navbar .navbar-collapse {
+    text-align: center;
+    font-size: x-large;
 }
 
 a {
-    color: #f1f9f9;
+    color: black;
 }
 
 a:hover {
-    color: #f0f0f0;
+    color:brown;
 }
 
 .card {
     background-color: transparent;
+    color: #274a72;
 }
 
 .card-body {
-    background-color: lightgoldenrodyellow;
-}
-
-.navbar {
-    font-family: 'Open Sans', sans-serif;
-    font-weight: 700;
-    background-color: lightseagreen;
-    /*opacity: 50%;*/
+    background-color: lightblue;
 }
 
 .navbar-brand {
-    color: black;
+    color: #f07167;
+    font-size: larger;
 }
 
 h5 {

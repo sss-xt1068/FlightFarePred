@@ -1,12 +1,29 @@
 from flask import Flask, request, render_template
 from flask_cors import cross_origin
-import sklearn
+import statistics
 import pickle
 import pandas as pd
 import numpy as np
+import plotly.express as px
+import plotly
+import json
 
 app = Flask(__name__)
-model = pickle.load(open("rf_best.pkl", "rb"))
+
+with open("models/rf_grid.pkl", "rb") as f:
+	rf_model = pickle.load(f)
+
+with open("models/etc_grid.pkl", "rb") as f:
+	etc_model = pickle.load(f)
+
+with open("models/lgbm_grid.pkl", "rb") as f:
+	lgbm_model = pickle.load(f)
+
+with open("models/lasso.pkl", "rb") as f:
+	lasso_model = pickle.load(f)
+
+locations = pd.read_csv('locations.csv')
+
 
 @app.route("/")
 @cross_origin()
@@ -14,108 +31,106 @@ def home():
 	return render_template("home.html")
 
 
-@app.route("/predict", methods = ["GET", "POST"])
+def gm(src, dest):
+	df = locations[locations['city'].isin([src, dest])]
+	fig = px.line_mapbox(df,
+						 lat="lat", lon="lon", zoom=3)
+	fig.update_layout(mapbox_style="open-street-map", mapbox_zoom=4,
+    margin={"r":0,"t":0,"l":0,"b":0})
+
+	return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+
+@app.route("/predict", methods=["GET", "POST"])
 @cross_origin()
 def predict():
 	if request.method == "POST":
 
 		# Date_of_Journey
 		date_dep = request.form["Dep_Time"]
-		Journey_day = int(pd.to_datetime(date_dep, format="%Y-%m-%dT%H:%M").day)
-		Journey_month = int(pd.to_datetime(date_dep, format ="%Y-%m-%dT%H:%M").month)
-		# print("Journey Date : ",Journey_day, Journey_month)
-
-		# Departure
-		Dep_hour = int(pd.to_datetime(date_dep, format ="%Y-%m-%dT%H:%M").hour)
-		Dep_min = int(pd.to_datetime(date_dep, format ="%Y-%m-%dT%H:%M").minute)
-		# print("Departure : ",Dep_hour, Dep_min)
-
-		# Arrival
-		date_arr = request.form["Arrival_Time"]
-		Arrival_hour = int(pd.to_datetime(date_arr, format ="%Y-%m-%dT%H:%M").hour)
-		Arrival_min = int(pd.to_datetime(date_arr, format ="%Y-%m-%dT%H:%M").minute)
-		# print("Arrival : ", Arrival_hour, Arrival_min)
-
-		# Duration
-		dur_hour = abs(Arrival_hour - Dep_hour)
-		dur_min = abs(Arrival_min - Dep_min)
-		dur_total = dur_hour*60 + dur_min
-		# print("Duration : ", dur_hour, dur_min)
+		dep_weekend = int(pd.to_datetime(
+			date_dep, format="%Y-%m-%dT%H:%M").day_of_week)
+		dep_weekend = 1 if dep_weekend in {5, 6} else 0
+		dep_month = int(pd.to_datetime(
+			date_dep, format="%Y-%m-%dT%H:%M").month)
+		print(dep_weekend, dep_month)
 
 		# Total Stops
-		Total_stops = int(request.form["stops"])
-		# print(Total_stops)
-
-		# Index(['Total_Stops', 'journey_month', 'journey_day', 'dep_hour', 'dep_mins',
-	   # 'arr_hour', 'arr_mins', 'dur_hours', 'dur_minutes', 'dur_total',
-	   # 'air_Air India', 'air_Business Class Flights', 'air_GoAir',
-	   # 'air_IndiGo', 'air_Jet Airways', 'air_Multiple carriers',
-	   # 'air_Premium Economy flights', 'air_SpiceJet', 'air_Vistara',
-	   # 'src_Chennai', 'src_Delhi', 'src_Kolkata', 'src_Mumbai', 'dest_Cochin',
-	   # 'dest_Delhi', 'dest_Hyderabad', 'dest_Kolkata', 'dest_New Delhi'],
+		stops = request.form["stops"]
+		stops_index = ["1", "2", "3", "4"]
+		stops_data = np.zeros(4)
+		if stops != 0:
+			idx = np.where(stops_index == stops)
+			stops_data[idx] = 1
+		print(stops)
 
 		# Airline
-		# Working as per OneHotEncoder operation
-		airline=request.form['airline']
+		airline = request.form['airline']
 		print(airline)
-		air_zeros = [[0]*9]
-		air_index = ['Air India','Business Class', 'GoAir', 'IndiGo', 'Jet Airways', 'Other carriers','Premium Economy Class',\
-		'SpiceJet', 'Vistara']
-		air_df = pd.DataFrame(columns=air_index, data=air_zeros)
-		air_df.loc[:, airline] = 1
-		air_data = air_df.iloc[0].values
-		print(air_data)
+		air_index = ['Air India', 'Business', 'GoAir', 'IndiGo', 'Jet Airways',
+		 'Other', 'PremiumEcon', 'SpiceJet', 'Vistara']
+		air_data = np.zeros(9, dtype='int8')
+		if airline != 'Air Asia':
+			air_df = pd.DataFrame(columns=air_index)
+			air_df.loc[0] = air_data
+			air_df.loc[:, airline] = 1
+			air_data = air_df.to_numpy()[0]
 
 		# Source
-		# Banglore = 0 (not in column)
-		# 'src_Chennai', 'src_Delhi', 'src_Kolkata', 'src_Mumbai',
-		Source = request.form["Source"]
-		src_index = ['Chennai', 'Delhi', 'Kolkata', 'Mumbai']
-		src_values = [[0]*4]
-		src_df = pd.DataFrame(columns=src_index, data=src_values)
-		try:
-			src_df[:, Source] = 1
-		except:
-			pass
-		src_data = src_df.iloc[0].values
+		# Bangalore = 0 (not in column)
+		# 'Source_Chennai', 'Source_Kolkata', 'Source_Mumbai', 'Source_New Delhi',
+		source = request.form["Source"]
+		print(source)
+		src_index = ['Chennai', 'Kolkata', 'Mumbai', 'New Delhi']
+		src_data = np.zeros(4, dtype='int8')
+		if source != 'Bangalore':
+			src_df = pd.DataFrame(columns=src_index)
+			src_df.loc[0] = src_data
+			src_df.loc[:, source] = 1
+			src_data = src_df.to_numpy()[0]
 
 		# Destination
-		# Banglore = 0 (not in column)
-		Dest = request.form["Destination"]
-		dest_index = ['Cochin', 'Hyderabad','Kolkata', 'New Delhi']
-		dest_values = [[0]*4]
-		dest_df = pd.DataFrame(columns=dest_index, data=dest_values)
-		try:
-			dest_df[:, Source] = 1
-		except:
-			pass
-		dest_data = dest_df.iloc[0].values
+		# Bangalore = 0 (not in column)
+		# 'Cochin', 'Hyderabad', 'Kolkata', 'New Delhi',
+		dest = request.form["Destination"]
+		print(dest)
+		dest_index = ['Cochin', 'Hyderabad', 'Kolkata', 'New Delhi']
+		dest_data = np.zeros(4, dtype='int8')
+		if dest != 'Bangalore':
+			dest_df = pd.DataFrame(columns=dest_index)
+			dest_df.loc[0] = dest_data
+			dest_df.loc[:, dest] = 1
+			dest_data = dest_df.to_numpy()[0]
 
-	#     ['Total_Stops', 'Journey_day', 'Journey_month', 'Dep_hour',
-	#    'Dep_min', 'Arrival_hour', 'Arrival_min', 'Duration_hours',
-	#    'Duration_mins', 'Airline_Air India', 'Airline_GoAir', 'Airline_IndiGo',
-	#    'Airline_Jet Airways', 'Airline_Jet Airways Business',
-	#    'Airline_Multiple carriers',
-	#    'Airline_Multiple carriers Premium economy', 'Airline_SpiceJet',
-	#    'Airline_Trujet', 'Airline_Vistara', 'Airline_Vistara Premium economy',
-	#    'Source_Chennai', 'Source_Delhi', 'Source_Kolkata', 'Source_Mumbai',
-	#    'Destination_Cochin', 'Destination_Delhi', 'Destination_Hyderabad',
-	#    'Destination_Kolkata', 'Destination_New Delhi']
+		mnth_data = np.zeros(3)
+		# Month
+		if dep_month in {4, 5, 6}:
+			mnth_index = ['M4', 'M5', 'M6']
+			dep_month = f"M{dep_month}"
+			mnth_data[mnth_index.index(dep_month)] = 1
 		
-		final_array = list([Total_stops, Journey_month, Journey_day, Dep_hour, Dep_min, Arrival_hour, Arrival_min, dur_hour, dur_min, dur_total])
-		final_array.extend(list(air_data))
-		final_array.extend(list(src_data))
-		final_array.extend(list(dest_data))
-		prediction=model.predict([final_array])
+		final_array = [dep_weekend] +\
+			list(air_data) +\
+			list(src_data) +\
+			list(dest_data) +\
+			list(stops_data) +\
+			list(mnth_data)
 
-		output=round(prediction[0],2)
+		# Average the ensemble predictions
+		prediction = statistics.mean([
+			rf_model.predict([final_array])[0],
+			etc_model.predict([final_array])[0],
+			lgbm_model.predict([final_array])[0],
+			lasso_model.predict([final_array])[0]
+		])
 
-		return render_template('home.html',prediction_text="Your Flight price should be around Rs. {}".format(output))
+		output = round(prediction, 2)
 
+	return render_template('home.html',
+						   prediction_text=f"Your ticket should cost approximately ₹ {output}",
+						   graphJson=gm(source, dest))
 
-	return render_template("home.html")
-
-
+	# return render_template("home.html")
 
 
 if __name__ == "__main__":
