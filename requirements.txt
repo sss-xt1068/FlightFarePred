@@ -2,7 +2,7 @@ gunicorn
 flask
 numpy
 pandas
-sklearn
+scikit-learn
 flask_cors
 flask_wtf
 wtforms
