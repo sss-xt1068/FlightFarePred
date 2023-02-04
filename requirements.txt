@@ -8,5 +8,11 @@ flask_wtf
 wtforms
 markupsafe==2.0.1
 jinja2==2.11.3
+itsdangerous==2.0.1
+werkzeug==2.0.3
+click==8.0.4
+pytz==2022.7
+scipy==1.7.3
+threadpoolctl==2.2.0
 plotly==5.9.0
 lightgbm==3.2.1
